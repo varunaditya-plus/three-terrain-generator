@@ -68,51 +68,11 @@ function App() {
       
       // Adjust tone mapping exposure for HDR
       renderer.toneMappingExposure = 1.0
-      
-      // Create skybox mesh for better visual quality
-      const skyGeometry = new THREE.SphereGeometry(500, 64, 64)
-      const skyMaterial = new THREE.MeshBasicMaterial({
-        map: texture,
-        side: THREE.BackSide,
-        fog: false
-      })
-      const sky = new THREE.Mesh(skyGeometry, skyMaterial)
-      sky.name = 'skybox'
-      scene.add(sky)
     }, undefined, (error) => {
       console.error('Error loading skybox:', error)
-      // Fallback to simple gradient sky if HDR fails to load
-      const skyGeometry = new THREE.SphereGeometry(500, 32, 32)
-      const skyMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-          topColor: { value: new THREE.Color(0x0077ff) },
-          bottomColor: { value: new THREE.Color(0xffffff) },
-          offset: { value: 33 },
-          exponent: { value: 0.6 }
-        },
-        vertexShader: `
-          varying vec3 vWorldPosition;
-          void main() {
-            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-            vWorldPosition = worldPosition.xyz;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          uniform vec3 topColor;
-          uniform vec3 bottomColor;
-          uniform float offset;
-          uniform float exponent;
-          varying vec3 vWorldPosition;
-          void main() {
-            float h = normalize(vWorldPosition + offset).y;
-            gl_FragColor = vec4(mix(bottomColor, topColor, max(pow(max(h, 0.0), exponent), 0.0)), 1.0);
-          }
-        `,
-        side: THREE.BackSide
-      })
-      const sky = new THREE.Mesh(skyGeometry, skyMaterial)
-      scene.add(sky)
+      // Fallback to solid sky color if HDR fails
+      scene.background = new THREE.Color(0x87ceeb)
+      scene.environment = null
     })
 
     // Add realistic lighting setup
@@ -195,21 +155,11 @@ function App() {
         containerRef.current.removeChild(renderer.domElement)
       }
       
-      // Cleanup skybox if it exists
-      const sky = scene.getObjectByName('skybox')
-      if (sky) {
-        sky.geometry.dispose()
-        sky.material.dispose()
-        if (sky.material.map) {
-          sky.material.map.dispose()
-        }
-      }
-      
       // Cleanup environment texture
-      if (scene.background) {
+      if (scene.background && scene.background.isTexture) {
         scene.background.dispose()
       }
-      if (scene.environment) {
+      if (scene.environment && scene.environment.isTexture) {
         scene.environment.dispose()
       }
       

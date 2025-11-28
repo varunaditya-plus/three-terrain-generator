@@ -1,6 +1,6 @@
 // Terrain generation constants
-const BIOME_THRESHOLD = 0.4
-const BIOME_SCALE = 0.005
+const BIOME_THRESHOLD = 0.65
+const BIOME_SCALE = 0.003
 
 // Octave definitions for different terrain types
 const MOUNTAIN_OCTAVES = [
