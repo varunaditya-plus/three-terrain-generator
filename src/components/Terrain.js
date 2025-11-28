@@ -10,7 +10,7 @@ const MOUNTAIN_OCTAVES = [
   { scale: 0.08, amplitude: 3 },
   { scale: 0.15, amplitude: 1 }
 ]
-const MOUNTAIN_BASE = 5
+const MOUNTAIN_BASE = 20
 
 const PLAINS_OCTAVES = [
   { scale: 0.01, amplitude: 3 },

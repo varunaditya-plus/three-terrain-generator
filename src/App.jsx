@@ -31,8 +31,8 @@ function App() {
     sceneRef.current = scene
     
     // Add distance fog for atmospheric depth
-    const fogColor = new THREE.Color(0xbfd1e5)
-    scene.fog = new THREE.Fog(fogColor, 120, 450)
+    const fogColor = new THREE.Color(0xD6DFE5)
+    scene.fog = new THREE.Fog(fogColor, 20, 200)
 
     // Create camera
     const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000)
