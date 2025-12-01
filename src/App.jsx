@@ -16,8 +16,15 @@ function App() {
   const materialUniformsRef = useRef(null)
   const playerPositionRef = useRef(new THREE.Vector3(0, 0, 0))
   const [isReady, setIsReady] = useState(false)
+  const [isSprinting, setIsSprinting] = useState(false)
   const handlePlayerPositionUpdate = useCallback((pos) => {
     playerPositionRef.current.copy(pos)
+  }, [])
+  const handleSprintStateChange = useCallback((sprinting) => {
+    setIsSprinting(sprinting)
+  }, [])
+  const handleMaterialUniformsReady = useCallback((uniforms) => {
+    materialUniformsRef.current = uniforms
   }, [])
 
   useEffect(() => {
@@ -170,6 +177,9 @@ function App() {
   return (
     <>
       <div ref={containerRef} className="w-screen h-screen m-0 p-0 cursor-crosshair" />
+      {isSprinting && (
+        <div className="absolute top-4 left-4 text-white text-xl drop-shadow-lg z-10 pointer-events-none">Sprinting</div>
+      )}
       {isReady && sceneRef.current && cameraRef.current && rendererRef.current && noise2DRef.current && (
         <>
           <ChunkedTerrain 
@@ -177,7 +187,7 @@ function App() {
             camera={cameraRef.current} 
             noise2D={noise2DRef.current} 
             playerPosition={playerPositionRef.current}
-            onMaterialUniformsReady={(uniforms) => { materialUniformsRef.current = uniforms }} 
+            onMaterialUniformsReady={handleMaterialUniformsReady} 
           />
           <Player 
             scene={sceneRef.current} 
@@ -186,6 +196,7 @@ function App() {
             terrainSize={terrainSizeRef.current} 
             noise2D={noise2DRef.current}
             onPositionUpdate={handlePlayerPositionUpdate}
+            onSprintStateChange={handleSprintStateChange}
           />
         </>
       )}

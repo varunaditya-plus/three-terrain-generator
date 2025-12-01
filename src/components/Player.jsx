@@ -5,7 +5,7 @@ import { getTerrainHeight } from './Terrain'
 const BASE_WALK_SHAKE = 0.35
 const TRAUMA_DECAY_RATE = 0.8
 
-export default function Player({ scene, camera, renderer, terrainSize, noise2D, onPositionUpdate }) {
+export default function Player({ scene, camera, renderer, terrainSize, noise2D, onPositionUpdate, onSprintStateChange }) {
   const keysRef = useRef({})
   const directionRef = useRef(new THREE.Vector3())
   const moveVectorRef = useRef(new THREE.Vector3())
@@ -21,6 +21,7 @@ export default function Player({ scene, camera, renderer, terrainSize, noise2D, 
   const rayOriginRef = useRef(new THREE.Vector3())
   const downDirectionRef = useRef(new THREE.Vector3(0, -1, 0))
   const jumpLockRef = useRef(false)
+  const isSprintingRef = useRef(false)
 
   // Under-the-hood player position (without shake) so physics/collisions stay stable
   const playerPositionRef = useRef(new THREE.Vector3())
@@ -84,6 +85,12 @@ export default function Player({ scene, camera, renderer, terrainSize, noise2D, 
       if (event.code === 'Space') {
         jumpLockRef.current = false
       }
+      if (event.code === 'KeyR') {
+        isSprintingRef.current = false
+        if (onSprintStateChange) {
+          onSprintStateChange(false)
+        }
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
@@ -121,7 +128,8 @@ export default function Player({ scene, camera, renderer, terrainSize, noise2D, 
     window.addEventListener('click', focusCanvas)
 
     // Movement loop
-    const moveSpeed = 0.08
+    const baseMoveSpeed = 0.08
+    const sprintMultiplier = 2.5
     const gravity = -0.01
     const jumpForce = 0.25
     const groundSnapDistance = 0.05
@@ -133,6 +141,14 @@ export default function Player({ scene, camera, renderer, terrainSize, noise2D, 
       prevTimeRef.current = timeSeconds
 
       const keys = keysRef.current
+
+      // Handle sprint toggle
+      if (keys['KeyR'] && !isSprintingRef.current) {
+        isSprintingRef.current = true
+        if (onSprintStateChange) {
+          onSprintStateChange(true)
+        }
+      }
 
       const playerPos = playerPositionRef.current
 
@@ -158,13 +174,26 @@ export default function Player({ scene, camera, renderer, terrainSize, noise2D, 
         moveVectorRef.current.set(0, 0, 0)
         moveVectorRef.current.addScaledVector(forward, -directionRef.current.z)
         moveVectorRef.current.addScaledVector(right, directionRef.current.x)
-        moveVectorRef.current.normalize().multiplyScalar(moveSpeed)
+        const currentMoveSpeed = isSprintingRef.current ? baseMoveSpeed * sprintMultiplier : baseMoveSpeed
+        moveVectorRef.current.normalize().multiplyScalar(currentMoveSpeed)
 
         playerPos.add(moveVectorRef.current)
       }
 
       const terrainHeight = getAccurateTerrainHeight(playerPos.x, playerPos.z)
       const groundLevel = terrainHeight + cameraHeightRef.current
+      
+      // Check if grounded BEFORE jump check (using current position)
+      const currentDistanceFromGround = playerPos.y - groundLevel
+      const isCurrentlyGrounded = currentDistanceFromGround <= groundSnapDistance && verticalVelocityRef.current <= 0
+      
+      // Update grounded state if we detect we're on the ground
+      if (isCurrentlyGrounded) {
+        isGroundedRef.current = true
+        // Reset jump lock when grounded so player can jump
+        jumpLockRef.current = false
+      }
+      
       // Jump (requires key release to retrigger)
       if (keys['Space'] && !jumpLockRef.current && isGroundedRef.current) {
         verticalVelocityRef.current = jumpForce
@@ -195,10 +224,14 @@ export default function Player({ scene, camera, renderer, terrainSize, noise2D, 
         playerPos.y = groundLevel
         verticalVelocityRef.current = 0
         isGroundedRef.current = true
+        // Reset jump lock when landing so player can jump again
+        jumpLockRef.current = false
       } else if (camera.position.y < groundLevel) {
         playerPos.y = groundLevel
         verticalVelocityRef.current = 0
         isGroundedRef.current = true
+        // Reset jump lock when landing so player can jump again
+        jumpLockRef.current = false
       } else {
         isGroundedRef.current = false
       }
